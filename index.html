@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TextPlay — Fun Interactive Micro Tools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .tool-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .tool-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+        /* Gate styles */
+        #gate-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 100;
+            display: flex;
+            overflow: hidden;
+        }
+        .gate {
+            width: 50vw;
+            height: 100vh;
+            background: #1f2937; /* dark-gray */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #gate-left {
+            border-right: 2px solid #fde047; /* yellow-300 */
+        }
+        #gate-right {
+            border-left: 2px solid #fde047; /* yellow-300 */
+        }
+        #gate-lock {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 110;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+        }
+        .gate-box {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(253, 224, 71, 0.3);
+            padding: 2rem 3rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+        }
+        .lock-icon {
+            font-size: 5rem;
+            color: #fde047;
+            text-shadow: 0 0 15px #fde047;
+            margin-bottom: 1rem;
+        }
+        .gate-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .gate-subtitle {
+            font-weight: 300;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+            margin-top: 0.5rem;
+        }
+        /* FAQ Accordion Styles */
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+        }
+        .faq-item.active .faq-answer {
+            max-height: 200px; /* Adjust as needed */
+            padding-top: 1rem;
+        }
+        .faq-item .faq-arrow {
+            transition: transform 0.3s ease;
+        }
+        .faq-item.active .faq-arrow {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body class="gradient-bg text-gray-800">
+
+    <!-- Gate Animation Container -->
+    <div id="gate-container">
+        <div id="gate-left" class="gate"></div>
+        <div id="gate-right" class="gate"></div>
+        <div id="gate-lock">
+            <div class="gate-box">
+                <div class="lock-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 mx-auto" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h2 class="gate-title">TextPlay</h2>
+                <p class="gate-subtitle">Click to Enter</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div id="app" class="min-h-screen flex flex-col opacity-0">
+
+        <!-- NavBar -->
+        <nav class="sticky top-0 bg-white/80 backdrop-blur-md shadow-sm z-50">
+            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">
+                    <span class="text-indigo-500">Text</span>Play ⚡
+                </h1>
+                <div class="hidden md:flex space-x-6 items-center">
+                    <a href="#tools" class="text-gray-600 hover:text-indigo-500 transition-colors">Tools</a>
+                    <a href="#how-it-works" class="text-gray-600 hover:text-indigo-500 transition-colors">How It Works</a>
+                    <a href="#developer" class="text-gray-600 hover:text-indigo-500 transition-colors">Developer</a>
+                    <a href="#faq" class="text-gray-600 hover:text-indigo-500 transition-colors">FAQ</a>
+                    <a href="#footer" class="text-gray-600 hover:text-indigo-500 transition-colors">Contact</a>
+                </div>
+                <button id="mobile-menu-button" class="md:hidden text-gray-600 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden px-6 pb-4">
+                 <a href="#tools" class="block py-2 text-gray-600 hover:text-indigo-500 transition-colors">Tools</a>
+                 <a href="#how-it-works" class="block py-2 text-gray-600 hover:text-indigo-500 transition-colors">How It Works</a>
+                 <a href="#developer" class="block py-2 text-gray-600 hover:text-indigo-500 transition-colors">Developer</a>
+                 <a href="#faq" class="block py-2 text-gray-600 hover:text-indigo-500 transition-colors">FAQ</a>
+                 <a href="#footer" class="block py-2 text-gray-600 hover:text-indigo-500 transition-colors">Contact</a>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <header class="text-center py-20 px-6">
+            <h2 class="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight">
+                Unlock the Fun Side of Your Words
+            </h2>
+            <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+                A playful suite of 10 unique, AI-free text tools to analyze, rewrite, and have fun with your words. Pure JavaScript magic!
+            </p>
+            <div class="mt-8">
+                <a href="#tools" class="bg-indigo-500 text-white font-bold py-3 px-8 rounded-full hover:bg-indigo-600 transition-all transform hover:scale-105 shadow-lg">
+                    Explore Tools
+                </a>
+            </div>
+        </header>
+
+        <!-- Tools Grid -->
+        <main id="tools" class="container mx-auto px-6 py-16 flex-grow">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                <!-- Tool cards will be injected here by JS -->
+            </div>
+        </main>
+        
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="bg-white/50 py-20 px-6">
+            <div class="container mx-auto text-center max-w-4xl">
+                <h3 class="text-3xl md:text-4xl font-bold mb-2 text-gray-900">Simple Magic, No AI Overlords</h3>
+                <p class="text-gray-600 mb-12">Here’s the secret sauce—it's not really a secret!</p>
+                <div class="grid md:grid-cols-3 gap-10 text-left">
+                    <div class="p-6 bg-white rounded-lg shadow-md">
+                        <div class="text-3xl text-indigo-500 mb-3">🔍</div>
+                        <h4 class="font-bold text-xl mb-2 text-gray-800">Keyword & Pattern Matching</h4>
+                        <p class="text-gray-600">Each tool uses a curated list of words and regular expressions to understand the context and sentiment of your text.</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-md">
+                        <div class="text-3xl text-indigo-500 mb-3">🎲</div>
+                        <h4 class="font-bold text-xl mb-2 text-gray-800">Playful Randomization</h4>
+                        <p class="text-gray-600">For tools like the Fortune Cookie, we use simple randomized arrays to give you a unique, fun response every time.</p>
+                    </div>
+                    <div class="p-6 bg-white rounded-lg shadow-md">
+                        <div class="text-3xl text-indigo-500 mb-3">🎨</div>
+                        <h4 class="font-bold text-xl mb-2 text-gray-800">Client-Side Logic</h4>
+                        <p class="text-gray-600">Everything happens right in your browser. Your text is never sent to a server, ensuring 100% privacy and speed.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Developer Section -->
+        <section id="developer" class="py-20 px-6">
+            <div class="container mx-auto max-w-4xl">
+                <div class="bg-white rounded-2xl shadow-xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
+                    <img src="https://placehold.co/150x150/6366f1/ffffff?text=MT" alt="Developer Mustafa Toxin" class="w-36 h-36 rounded-full border-4 border-indigo-200 shadow-lg">
+                    <div class="text-center md:text-left">
+                        <h3 class="text-3xl font-bold text-gray-900">Mustafa Talks</h3>
+                        <p class="text-indigo-500 font-semibold mb-3">Creative Developer</p>
+                        <p class="text-gray-600 mb-4">
+                            A passionate developer from Bhai Pheru Phool nagar 
+                            , Pakistan, who loves building fun, interactive, and beautiful things for the web. When not coding, you can find me exploring new creative ideas or enjoying a good cup of chai.
+                        </p>
+                        <div class="flex justify-center md:justify-start space-x-6">
+                            <a href="#" class="text-gray-500 hover:text-indigo-500" aria-label="Facebook">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/></svg>
+                            </a>
+                            <a href="#" class="text-gray-500 hover:text-indigo-500" aria-label="WhatsApp">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.586-1.457l-6.354 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.731 6.086l.001.004 4.971 4.971z"/></svg>
+                            </a>
+                            <a href="#" class="text-gray-500 hover:text-indigo-500" aria-label="YouTube">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="bg-white/50 py-20 px-6">
+            <div class="container mx-auto max-w-3xl">
+                <h3 class="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">Frequently Asked Questions</h3>
+                <div class="space-y-4">
+                    <div class="faq-item bg-white p-6 rounded-lg shadow-md">
+                        <button class="faq-question w-full flex justify-between items-center text-left text-xl font-semibold text-gray-800">
+                            <span>Is my data safe?</span>
+                            <svg class="faq-arrow w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-answer text-gray-600">
+                            <p>Absolutely. 100%. TextPlay operates entirely within your browser. None of the text you enter is ever sent to our servers or stored anywhere. Your privacy is paramount.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item bg-white p-6 rounded-lg shadow-md">
+                        <button class="faq-question w-full flex justify-between items-center text-left text-xl font-semibold text-gray-800">
+                            <span>Is this really free to use?</span>
+                            <svg class="faq-arrow w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-answer text-gray-600">
+                            <p>Yes! TextPlay is completely free. It's a passion project designed for fun and to showcase creative coding. There are no hidden fees or premium versions.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item bg-white p-6 rounded-lg shadow-md">
+                        <button class="faq-question w-full flex justify-between items-center text-left text-xl font-semibold text-gray-800">
+                            <span>Can I use this for serious work?</span>
+                            <svg class="faq-arrow w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-answer text-gray-600">
+                            <p>These tools are designed for entertainment purposes only. While they can be surprisingly insightful, they are based on simple logic and should not be used for making serious life decisions. Please enjoy them responsibly!</p>
+                        </div>
+                    </div>
+                    <div class="faq-item bg-white p-6 rounded-lg shadow-md">
+                        <button class="faq-question w-full flex justify-between items-center text-left text-xl font-semibold text-gray-800">
+                            <span>How can I suggest a new tool?</span>
+                            <svg class="faq-arrow w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="faq-answer text-gray-600">
+                            <p>We'd love to hear your ideas! You can reach out to the developer, Mustafa Toxin, via the social media links in the footer. We're always looking for new, fun ways to play with text.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Footer -->
+        <footer id="footer" class="bg-gray-800 py-12 px-6">
+            <div class="container mx-auto text-center">
+                <p class="font-semibold text-lg text-white">Developed with ❤️ by Mustafa Talkss </p>
+                <p class="text-gray-400">&copy; 2025 TextPlay. All Rights Reserved.</p>
+                <div class="mt-4 flex justify-center space-x-6">
+                    <a href="https://www.facebook.com/mustafatalks/" class="text-gray-300 hover:text-white" aria-label="Facebook">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/></svg>
+                    </a>
+                    <a href="https://tinyurl.com/mustafatalks" class="text-gray-300 hover:text-white" aria-label="WhatsApp">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.586-1.457l-6.354 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 4.315 1.731 6.086l.001.004 4.971 4.971z"/></svg>
+                    </a>
+                    <a href="https://youtube.com/@themustafatalks" class="text-gray-300 hover:text-white" aria-label="YouTube">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                    </a>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Tool Modal -->
+    <div id="tool-modal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none">
+        <div class="modal-content bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col transform scale-95">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h3 id="modal-title" class="text-2xl font-bold">Tool Title</h3>
+                <button id="close-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Body -->
+            <div class="p-6 flex-grow overflow-y-auto">
+                <p id="modal-description" class="text-gray-600 mb-4">Tool description goes here.</p>
+                <textarea id="modal-input" class="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="Enter your text here..."></textarea>
+                <button id="modal-action" class="mt-4 w-full bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-600 transition-all transform hover:scale-105 shadow-lg">
+                    Analyze Text
+                </button>
+            </div>
+
+            <!-- Output -->
+            <div id="modal-output-container" class="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl hidden">
+                 <h4 class="font-bold text-lg mb-2">Result:</h4>
+                 <div id="modal-output" class="p-4 bg-indigo-50 rounded-lg min-h-[50px] text-gray-800 whitespace-pre-wrap"></div>
+                 <canvas id="mood-doodle" class="hidden mx-auto my-4 rounded-lg bg-white shadow-inner" width="200" height="200"></canvas>
+                 <div class="mt-4 flex items-center justify-between">
+                    <div id="emoji-reactions" class="space-x-2">
+                        <!-- Emojis will be added here -->
+                    </div>
+                    <button id="share-button" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-all flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.368a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path></svg>
+                        Share
+                    </button>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-10 right-10 bg-gray-900 text-white py-2 px-5 rounded-lg shadow-lg opacity-0 transform translate-y-5 transition-all duration-300 z-50">
+        Copied to clipboard!
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gateContainer = document.getElementById('gate-container');
+            const gateLock = document.getElementById('gate-lock');
+            const gateLeft = document.getElementById('gate-left');
+            const gateRight = document.getElementById('gate-right');
+            const appContainer = document.getElementById('app');
+
+            // --- CLICK-TO-OPEN GATE ANIMATION LOGIC ---
+            
+            // Bobbing animation for the lock to attract clicks
+            gsap.to(gateLock, { y: -10, repeat: -1, yoyo: true, duration: 1.5, ease: 'power1.inOut' });
+
+            gateLock.addEventListener('click', () => {
+                const tl = gsap.timeline();
+                // Stop the bobbing animation
+                gsap.killTweensOf(gateLock);
+                
+                tl.to(gateLock, { scale: 0, opacity: 0, duration: 0.5, ease: 'power2.in' });
+                tl.to(gateLeft, { x: '-100%', duration: 1.2, ease: 'expo.inOut' }, "-=0.2");
+                tl.to(gateRight, { x: '100%', duration: 1.2, ease: 'expo.inOut' }, "<");
+                tl.to(appContainer, { 
+                    opacity: 1, 
+                    duration: 1,
+                    onComplete: () => {
+                        gateContainer.style.display = 'none';
+                    }
+                }, "-=0.8");
+            });
+
+
+            // --- DATA ---
+            const tools = [
+                { id: 'lie-detector', title: 'Lie Detector', description: 'Analyzes text for common indicators of deception. Not scientifically accurate, but fun!', action: 'Analyze Truthfulness', emoji: '🤥' },
+                { id: 'excuse-converter', title: 'Excuse-to-Action Converter', description: 'Turns your excuses into motivating action statements.', action: 'Convert Excuse', emoji: '💪' },
+                { id: 'mood-doodle', title: 'Instant Mood Doodle', description: 'Generates a simple doodle based on the mood of your text.', action: 'Doodle my Mood', emoji: '🎨' },
+                { id: 'regret-rewriter', title: 'Regret Rewriter', description: 'Reframes past regrets into future-focused, positive actions.', action: 'Rewrite Regret', emoji: '✨' },
+                { id: 'vibe-checker', title: 'Friendship Vibe Checker', description: 'Checks the general "vibe" of a conversation or message.', action: 'Check Vibe', emoji: '😎' },
+                { id: 'dream-decoder', title: 'Dream Decoder Mini', description: 'Offers playful interpretations of common dream symbols.', action: 'Decode Dream', emoji: '🌙' },
+                { id: 'cringe-meter', title: 'Cringe Meter', description: 'Rates your text on a scale from "Smooth" to "Super Cringe".', action: 'Measure Cringe', emoji: '😬' },
+                { id: 'compliment-finder', title: 'Hidden Compliment Finder', description: 'Finds the nice things people might be saying... indirectly.', action: 'Find Compliments', emoji: '💖' },
+                { id: 'procrastination-cookie', title: 'Procrastination Fortune Cookie', description: 'Enter what you\'re avoiding and get a "fortune".', action: 'Get Fortune', emoji: '🥠' },
+                { id: 'tone-shifter', title: 'Text Tone Shifter', description: 'Get suggestions to make your text sound more casual or formal.', action: 'Shift Tone', emoji: '🎭' }
+            ];
+
+            // --- UI ELEMENTS ---
+            const toolsGrid = document.querySelector('#tools .grid');
+            const modal = document.getElementById('tool-modal');
+            const modalContent = modal.querySelector('.modal-content');
+            const closeModalBtn = document.getElementById('close-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalDescription = document.getElementById('modal-description');
+            const modalInput = document.getElementById('modal-input');
+            const modalAction = document.getElementById('modal-action');
+            const outputContainer = document.getElementById('modal-output-container');
+            const outputEl = document.getElementById('modal-output');
+            const doodleCanvas = document.getElementById('mood-doodle');
+            const shareButton = document.getElementById('share-button');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            let currentToolId = null;
+
+            // --- RENDER TOOLS ---
+            function renderTools() {
+                toolsGrid.innerHTML = tools.map(tool => `
+                    <div class="tool-card bg-white rounded-xl shadow-md overflow-hidden cursor-pointer p-6 flex flex-col items-center text-center" data-tool-id="${tool.id}">
+                        <div class="text-5xl mb-4">${tool.emoji}</div>
+                        <h3 class="text-xl font-bold text-gray-800">${tool.title}</h3>
+                        <p class="text-gray-500 mt-2 flex-grow">${tool.description}</p>
+                    </div>
+                `).join('');
+            }
+
+            // --- MODAL LOGIC ---
+            function openModal(toolId) {
+                const tool = tools.find(t => t.id === toolId);
+                if (!tool) return;
+
+                currentToolId = toolId;
+                modalTitle.textContent = tool.title;
+                modalDescription.textContent = tool.description;
+                modalAction.textContent = tool.action;
+                modalInput.value = '';
+                outputContainer.classList.add('hidden');
+                outputEl.textContent = '';
+                doodleCanvas.classList.add('hidden');
+
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                gsap.to(modal, { opacity: 1, duration: 0.3 });
+                gsap.fromTo(modalContent, { scale: 0.95, y: 20 }, { scale: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+            }
+
+            function closeModal() {
+                gsap.to(modal, { opacity: 0, duration: 0.3, onComplete: () => {
+                    modal.classList.add('pointer-events-none');
+                }});
+                gsap.to(modalContent, { scale: 0.95, y: 20, duration: 0.3, ease: 'power2.in' });
+            }
+            
+            // --- NOTIFICATION ---
+            function showToast(message) {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.classList.remove('opacity-0', 'translate-y-5');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-5');
+                }, 2000);
+            }
+
+            // --- EVENT LISTENERS ---
+            toolsGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.tool-card');
+                if (card) {
+                    const toolId = card.dataset.toolId;
+                    openModal(toolId);
+                }
+            });
+
+            closeModalBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+            
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            modalAction.addEventListener('click', () => {
+                const inputText = modalInput.value.trim();
+                if (!inputText) {
+                    outputEl.textContent = 'Please enter some text to analyze.';
+                    outputContainer.classList.remove('hidden');
+                    return;
+                }
+                const result = runTool(currentToolId, inputText);
+                displayResult(result);
+            });
+            
+            shareButton.addEventListener('click', () => {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                
+                const textToCopy = `I used TextPlay's "${tools.find(t=>t.id===currentToolId).title}" and got this result:\n\n${outputEl.textContent}`;
+
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.position = "fixed";
+
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        showToast('Result copied to clipboard!');
+                    } else {
+                        showToast('Failed to copy!');
+                    }
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                    showToast('Failed to copy!');
+                }
+
+                document.body.removeChild(textArea);
+            });
+
+            // --- FAQ Accordion Logic ---
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                question.addEventListener('click', () => {
+                    faqItems.forEach(otherItem => {
+                        if (otherItem !== item && otherItem.classList.contains('active')) {
+                            otherItem.classList.remove('active');
+                        }
+                    });
+                    item.classList.toggle('active');
+                });
+            });
+
+
+            // --- TOOL LOGIC ---
+            function runTool(toolId, text) {
+                switch (toolId) {
+                    case 'lie-detector': return lieDetector(text);
+                    case 'excuse-converter': return excuseConverter(text);
+                    case 'mood-doodle': return moodDoodle(text);
+                    case 'regret-rewriter': return regretRewriter(text);
+                    case 'vibe-checker': return vibeChecker(text);
+                    case 'dream-decoder': return dreamDecoder(text);
+                    case 'cringe-meter': return cringeMeter(text);
+                    case 'compliment-finder': return complimentFinder(text);
+                    case 'procrastination-cookie': return procrastinationCookie(text);
+                    case 'tone-shifter': return toneShifter(text);
+                    default: return { text: 'Unknown tool.' };
+                }
+            }
+            
+            function displayResult(result) {
+                outputEl.innerHTML = result.text.replace(/\n/g, '<br>');
+                doodleCanvas.classList.add('hidden');
+                if (result.doodle) {
+                    doodleCanvas.classList.remove('hidden');
+                    drawDoodle(result.doodle);
+                }
+                outputContainer.classList.remove('hidden');
+                gsap.fromTo(outputContainer, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4 });
+            }
+
+            // --- INDIVIDUAL TOOL IMPLEMENTATIONS ---
+
+            function lieDetector(text) {
+                let score = 0;
+                const qualifiers = ['i guess', 'i think', 'maybe', 'sort of', 'kind of'];
+                const absolutes = ['i swear', 'definitely', 'absolutely', '100%', 'no doubt', 'i promise'];
+                const evasions = ['i don\'t remember', 'i can\'t recall', 'not that i know of'];
+                
+                qualifiers.forEach(q => { if (text.toLowerCase().includes(q)) score += 10; });
+                absolutes.forEach(a => { if (text.toLowerCase().includes(a)) score += 15; });
+                evasions.forEach(e => { if (text.toLowerCase().includes(e)) score += 20; });
+                
+                if (text.split(' ').length < 10) score += 10;
+                
+                let resultText = '';
+                if (score > 50) resultText = `🚨 **High Probability of Fibbing!** (Score: ${score}) \nThis sounds a bit shaky. The use of strong assurances and vague language is suspicious.`;
+                else if (score > 20) resultText = `🤔 **Slightly Suspicious...** (Score: ${score}) \nThere are some elements that could be interpreted as evasive. Proceed with caution.`;
+                else resultText = `✅ **Looks Truthful!** (Score: ${score}) \nThis text appears straightforward and honest.`;
+
+                return { text: resultText };
+            }
+
+            function excuseConverter(text) {
+                const excuses = [
+                    /I can't because/i, /I'm too tired to/i, /I don't have time to/i, /I'll do it later/i, /It's too hard to/i
+                ];
+                const actions = [
+                    "I will start by", "I can energize myself to", "I will make time to", "I will do it now by", "I can break it down to"
+                ];
+                let converted = false;
+                let newText = text;
+                excuses.forEach((excuse, index) => {
+                    if (excuse.test(newText)) {
+                        newText = newText.replace(excuse, actions[index]);
+                        converted = true;
+                    }
+                });
+                
+                if (converted) {
+                    return { text: `**Action Plan Activated!**\n\n"${newText}"` };
+                }
+                return { text: "This doesn't sound like an excuse. Keep up the great work!" };
+            }
+
+            function moodDoodle(text) {
+                const happyWords = ['happy', 'joy', 'excited', 'awesome', 'great', 'love'];
+                const sadWords = ['sad', 'cry', 'upset', 'depressed', 'miserable'];
+                const angryWords = ['angry', 'hate', 'furious', 'mad', 'annoyed'];
+                const calmWords = ['calm', 'peace', 'relaxed', 'chill'];
+
+                let mood = 'neutral';
+                if (happyWords.some(w => text.toLowerCase().includes(w))) mood = 'happy';
+                else if (sadWords.some(w => text.toLowerCase().includes(w))) mood = 'sad';
+                else if (angryWords.some(w => text.toLowerCase().includes(w))) mood = 'angry';
+                else if (calmWords.some(w => text.toLowerCase().includes(w))) mood = 'calm';
+
+                return { text: `Detected a **${mood}** mood. Here's a doodle for you:`, doodle: mood };
+            }
+            
+            function drawDoodle(mood) {
+                const ctx = doodleCanvas.getContext('2d');
+                ctx.clearRect(0, 0, 200, 200);
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = '#333';
+                ctx.lineCap = 'round';
+
+                ctx.beginPath();
+                ctx.arc(100, 100, 80, 0, Math.PI * 2);
+                ctx.stroke();
+
+                switch(mood) {
+                    case 'happy':
+                        ctx.fillStyle = 'yellow'; ctx.fill(); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(70, 80, 10, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(130, 80, 10, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(100, 110, 50, 0, Math.PI); ctx.stroke();
+                        break;
+                    case 'sad':
+                        ctx.fillStyle = 'lightblue'; ctx.fill(); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(70, 80, 10, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(130, 80, 10, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(100, 140, 40, Math.PI, Math.PI * 2); ctx.stroke();
+                        break;
+                    case 'angry':
+                        ctx.fillStyle = 'lightcoral'; ctx.fill(); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(55, 70); ctx.lineTo(85, 90); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(85, 70); ctx.lineTo(55, 90); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(115, 90); ctx.lineTo(145, 70); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(145, 90); ctx.lineTo(115, 70); ctx.stroke();
+                        ctx.beginPath(); ctx.rect(70, 120, 60, 20); ctx.stroke();
+                        break;
+                    case 'calm':
+                        ctx.fillStyle = 'lightgreen'; ctx.fill(); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(60, 85); ctx.lineTo(80, 85); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(120, 85); ctx.lineTo(140, 85); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(80, 130); ctx.lineTo(120, 130); ctx.stroke();
+                        break;
+                    default: 
+                        ctx.fillStyle = 'lightgray'; ctx.fill(); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(70, 80, 8, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(130, 80, 8, 0, Math.PI * 2); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(80, 130); ctx.lineTo(120, 130); ctx.stroke();
+                        break;
+                }
+            }
+
+            function regretRewriter(text) {
+                const regrets = [/I should have/i, /If only I had/i, /I wish I didn't/i, /I regret/i];
+                const rewrites = ["Next time, I will", "Moving forward, I will", "I've learned that I should", "As a lesson, I will now focus on"];
+                let rewritten = false;
+                let newText = text;
+                regrets.forEach((regret, index) => {
+                    if (regret.test(newText)) {
+                        newText = newText.replace(regret, rewrites[index]);
+                        rewritten = true;
+                    }
+                });
+                if(rewritten) {
+                    const pastRegrets = JSON.parse(localStorage.getItem('rewrittenRegrets') || '[]');
+                    pastRegrets.push({ original: text, rewritten: newText });
+                    localStorage.setItem('rewrittenRegrets', JSON.stringify(pastRegrets));
+                    return { text: `**Past is past. Here's your future focus:**\n\n"${newText}"` };
+                }
+                return { text: "No regrets detected! You're living life to the fullest." };
+            }
+            
+            function vibeChecker(text) {
+                const goodVibes = ['love', 'friend', 'awesome', 'great', 'thanks', 'haha', 'lol', '😊', '😂', '❤️'];
+                const badVibes = ['hate', 'annoying', 'whatever', '...', 'k.', '🙄', '😠'];
+                let score = 50;
+                goodVibes.forEach(v => { if (text.toLowerCase().includes(v)) score += 5; });
+                badVibes.forEach(v => { if (text.toLowerCase().includes(v)) score -= 10; });
+                score = Math.max(0, Math.min(100, score));
+
+                let resultText = '';
+                if (score > 75) resultText = `☀️ **Excellent Vibes!** (Score: ${score}/100)\nThis is pure friendship goals. So much positivity!`;
+                else if (score > 40) resultText = `🤔 **Neutral Vibes.** (Score: ${score}/100)\nSeems like a standard, chill conversation.`;
+                else resultText = `🥶 **Icy Vibes!** (Score: ${score}/100)\nUh oh. The vibe is a bit cold here. Maybe send a cute cat GIF?`;
+                return { text: resultText };
+            }
+
+            function dreamDecoder(text) {
+                const symbols = {
+                    'flying': 'You\'re feeling free and in control of your life!',
+                    'falling': 'You might be feeling a lack of support or insecurity in some area.',
+                    'teeth': 'Often related to anxiety about your appearance or how others see you.',
+                    'water': 'Represents your emotions. Calm water = peace, stormy water = turmoil.',
+                    'being chased': 'You might be avoiding an issue or a person in your waking life.',
+                    'school': 'Could mean you feel you are being tested or judged.'
+                };
+                let interpretations = [];
+                for (const symbol in symbols) {
+                    if (text.toLowerCase().includes(symbol)) {
+                        interpretations.push(`- **${symbol.charAt(0).toUpperCase() + symbol.slice(1)}:** ${symbols[symbol]}`);
+                    }
+                }
+                if (interpretations.length > 0) {
+                    return { text: "**Dream Interpretation:**\n\n" + interpretations.join('\n') };
+                }
+                return { text: "Couldn't find any common dream symbols. Maybe you dreamt of something unique!" };
+            }
+
+            function cringeMeter(text) {
+                const cringeWords = ['yeet', 'no cap', 'rizz', 'poggers', 'slay', 'bae', 'on fleek', 'uwu', 'owo'];
+                const excessiveEmojis = text.match(/([\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}])/gu) || [];
+                let score = 0;
+                cringeWords.forEach(w => { if (text.toLowerCase().includes(w)) score += 15; });
+                if (excessiveEmojis.length > 5) score += 20;
+                if (text === text.toUpperCase() && text.length > 10) score += 25; // ALL CAPS
+                score = Math.min(100, score);
+
+                let resultText = '';
+                if (score > 70) resultText = `🚨 **MAX CRINGE!** (Level: ${score}/100)\nThis is physically painful to read. Please reconsider.`;
+                else if (score > 30) resultText = `😬 **A Bit Cringey.** (Level: ${score}/100)\nIt's borderline. You might get away with it, but it's risky.`;
+                else resultText = `😎 **Smooth Operator.** (Level: ${score}/100)\nNot cringey at all. You're cool as a cucumber.`;
+                return { text: resultText };
+            }
+
+            function complimentFinder(text) {
+                const patterns = [
+                    /you're not as (.*) as I thought/i,
+                    /that's surprisingly good/i,
+                    /you clean up well/i,
+                    /I don't hate it/i
+                ];
+                const compliments = [
+                    "You're very capable and exceeded my expectations!",
+                    "That's genuinely impressive work!",
+                    "You look fantastic!",
+                    "I really like it!"
+                ];
+                let foundCompliments = [];
+                patterns.forEach((pattern, index) => {
+                    if (pattern.test(text)) {
+                        const match = text.match(pattern);
+                        foundCompliments.push(`- Instead of *"${match[0]}"*, they might mean: **"${compliments[index]}"**`);
+                    }
+                });
+                 if (foundCompliments.length > 0) {
+                    return { text: "**Found some hidden compliments!**\n\n" + foundCompliments.join('\n') };
+                }
+                return { text: "This seems straightforward. No hidden compliments detected!" };
+            }
+            
+            function procrastinationCookie(text) {
+                const fortunes = [
+                    "A task avoided today is a problem for future you. And future you is a chump.",
+                    "The best way to get something done is to begin. The second best is to complain about it on the internet.",
+                    "Remember that 5-minute task you've been avoiding for 6 months? It's still 5 minutes.",
+                    "Your brain is telling you to rest. Your to-do list is telling you your brain is a liar.",
+                    "Procrastination is the art of keeping up with yesterday.",
+                    "Just do it. Or don't. I'm a cookie, not a cop."
+                ];
+                const randomIndex = Math.floor(Math.random() * fortunes.length);
+                return { text: `**Your Fortune for Avoiding "${text}":**\n\n${fortunes[randomIndex]}` };
+            }
+            
+            function toneShifter(text) {
+                const formalWords = ['regards', 'sincerely', 'utilize', 'therefore', 'inquire'];
+                const casualWords = ['lol', 'btw', 'thx', 'hey', 'gotta go'];
+                
+                const isFormal = formalWords.some(w => text.toLowerCase().includes(w)) || (text.length > 50 && !casualWords.some(w => text.toLowerCase().includes(w)));
+                
+                let suggestions = '';
+                if (isFormal) {
+                    suggestions = `**To make it more casual:**\n- Try starting with "Hey" or "Hi".\n- Replace "utilize" with "use".\n- Replace "inquire" with "ask".\n- Add a friendly closing like "Cheers!" or "Talk soon!".`;
+                } else {
+                    suggestions = `**To make it more formal:**\n- Remove slang like "lol", "btw", etc.\n- Replace "hey" with "Hello" or "Dear".\n- Spell out words like "thanks" instead of "thx".\n- Use a formal closing like "Sincerely" or "Best regards".`;
+                }
+                return { text: `This text seems **${isFormal ? 'formal' : 'casual'}**. Here are some suggestions to shift the tone:\n\n${suggestions}` };
+            }
+
+            // --- INITIALIZE ---
+            renderTools();
+        });
+    </script>
+
+</body>
+</html>
